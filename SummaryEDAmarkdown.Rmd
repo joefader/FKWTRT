@@ -1,0 +1,196 @@
+---
+title: "SummaryEDA"
+author: "Joseph Fader"
+date: "9/2018"
+output: html_document
+---
+
+####libraries
+```{r results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(feather)
+library(grid)
+``` 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####load data
+```{r}
+sets_deep_all <- read_feather("Data/sets_deep_all.feather")
+```
+
+#### Interaction summary, all years -- some rates and terminology from Rabearisoa 2018
+```{r}
+
+sets_deep_all %>%
+       summarise(
+         totalsets = n(),
+         totalhooks = sum(NUM_HKS_SET),
+         CPUE_all = sum(FISH) / totalhooks * 1000, # note does not include any sharks
+         CPUE_K = sum(KEPT) / totalhooks * 1000, # should be comparable to LPUE below?
+         DP_MM_sets = sum(as.numeric(as.character(MM_YN)), na.rm = T),
+         DP_MM_sets = sum(ifelse(MM_sum >=1, 1, 0), na.rm = T),
+         DP_MM_tot = sum(MM_sum, na.rm = T),
+         MM_any = sum(as.numeric(as.character(MM_any)), na.rm = T),
+         nonMM_sets = totalsets - DP_MM_sets,
+         FKW_sets = sum(ifelse(FKW_sum >= 1, 1, 0), na.rm = T),
+         FKW_total = sum(FKW_sum, na.rm = T),
+         IR_MM_DP = DP_MM_sets / totalsets,
+         IR_MM_any = MM_any / totalsets,
+         DPUE = sum(DP_MM_tot) / totalhooks * 1000,
+         DPrate = DP_MM_sets / totalsets,
+         FKWrate = FKW_sets / totalsets,
+         Rissos = sum(ifelse(RISS_sum >= 1, 1, 0), na.rm = T),
+         GDR_MM = DP_MM_tot / sum(FISH)
+       ) %>%
+  knitr::kable()
+
+## by depredation or not
+sets_deep_all %>%
+  #filter(MM_YN == 1) %>% 
+  group_by(MM_YN) %>%
+  #group_by(YEAR) %>%
+    summarise(
+         totalsets = n(),
+         totalhooks = sum(NUM_HKS_SET),
+         CPUE_all = sum(FISH) / totalhooks * 1000, # note does not include any sharks
+         CPUE_K = sum(KEPT) / totalhooks * 1000, # should be comparable to LPUE below?
+         DP_MM_sets = sum(ifelse(MM_sum >=1, 1, 0), na.rm = T),
+         DP_MM_tot = sum(MM_sum, na.rm = T),
+         FKW_sets = sum(ifelse(FKW_sum >= 1, 1, 0), na.rm = T),
+         FKW_total = sum(FKW_sum, na.rm = T),
+         DPUE = sum(DP_MM_tot) / totalhooks * 1000,
+         LPUE = CPUE_all - DPUE,
+         DR_1 = DP_MM_tot / sum(FISH),
+         DR_2 = DP_MM_tot / sum(KEPT),
+         DR_3 = DPUE / CPUE_all,
+         DR_4 = (CPUE_all - LPUE) / CPUE_all
+       ) %>%
+  knitr::kable()
+```
+
+#### damage
+```{r}
+
+## sets with both depredation and FKW caught vs one or the other
+sets_deep_all %>% 
+  summarise(
+    sum(MM_sum >= 1 & FKW_sum >= 1),
+    sum(MM_sum >= 1 | FKW_sum >= 1),
+    sum(FKW_sum >=1)
+  )
+  knitr::kable()
+
+```
+
+## Time and space
+
+### Soak
+#The max soak is `r max(sets_deep_all$SOAK)*60` minutes and `r max(sets_deep_all$SOAK)` hours  
+#The min soak is `r min(sets_deep_all$SOAK)*60` minutes and `r min(sets_deep_all$SOAK)` hours
+
+## Soak Time
+```{r echo=FALSE}
+
+## histogram
+ggplot(data = sets_deep_all) +
+  geom_histogram(mapping = aes(x = as.numeric(SOAK)), binwidth = 0.05) + xlab("Histo soak all areas (hours)")
+sets_deep_all %>% 
+  filter(SOAK < 40) %>% 
+  ggplot() +
+  geom_histogram(mapping = aes(x = as.numeric(SOAK)), binwidth = 0.05) + xlab("Histo soak all areas (hours)")
+
+# depredation occurrence
+sets_deep_all %>% drop_na(MM_YN) %>%
+  ggplot(mapping = aes(x = as.numeric(SOAK), y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 0.3) + xlab("freq of soak by MM occurrence (hours)")
+sets_deep_all %>% drop_na(MM_YN) %>% 
+  ggplot(mapping = aes(x = as.factor(MM_YN), y = as.numeric(SOAK))) +
+  geom_boxplot() + xlab("MM occurence yes or no")
+```
+
+## Number of Hooks
+```{r echo=FALSE}
+
+## histogram - all hooks
+ggplot(data = sets_deep_all) +
+  geom_histogram(mapping = aes(x = NUM_HKS_SET), binwidth = 100) + xlab("Histo all hooks")
+
+# depredation occurrence
+sets_deep_all %>% drop_na(MM_YN) %>%
+  ggplot(mapping = aes(x = NUM_HKS_SET, y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 300 )
+
+```
+
+
+## Lag dist
+```{r echo=FALSE}
+
+# histogram - all lag
+ggplot(data = sets_deep_all) +
+  geom_histogram(mapping = aes(x = LAG_DIST), binwidth = 10) + xlab("Histo all hooks")
+
+# depredation occurrence
+
+sets_deep_all %>% drop_na(MM_any) %>% filter(DP_LAG1 == 1) %>%
+  ggplot(mapping = aes(x = LAG_DIST, y = ..density.., colour = as.factor(MM_any))) +
+  geom_freqpoly(binwidth = 20 ) + xlab("MM occurrence following DP or FKW by distance")
+sets_deep_all %>% filter(DP_LAG1 == 1) %>%
+  ggplot(mapping = aes(x = as.factor(MM_any), y = LAG_DIST)) +
+  geom_boxplot() + xlab("MM occurence yes or no")
+
+sets_deep_all %>% drop_na(MM_any) %>%
+  ggplot(mapping = aes(x = LAG_DIST, y = ..density.., colour = as.factor(DP_LAG1))) +
+  geom_freqpoly(binwidth = 20 ) + xlab("Distance moved following MM vs nonMM set")
+```
+
+
+
+
+### Lag time
+```{r echo=FALSE}
+# depredation occurrence
+sets_deep_all %>% drop_na(MM_YN) %>% filter(DP_LAG1 == 1) %>%
+  ggplot(mapping = aes(x = SET_LAG, y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 1 ) + xlab("lag time by MM occurrence")
+sets_deep_all %>% drop_na(MM_YN) %>% filter(DP_LAG1 == 1) %>%
+  ggplot(mapping = aes(x = as.factor(MM_YN), y = SET_LAG)) +
+  geom_boxplot() + xlab("MM occurence yes or no")
+
+```
+
+
+
+## depth - possible difference?
+```{r echo=FALSE}
+sets_deep_all %>% drop_na(MM_YN) %>%
+  ggplot(mapping = aes(x = MIN_LEN, y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 2 )
+
+```
+
+
+### more MM plots
+```{r echo=FALSE}
+# depredation occurrence
+
+## latitude
+sets_deep_all %>% drop_na(MM_YN) %>% 
+  ggplot(mapping = aes(x = SET_BEGIN_LAT, y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 0.5 )
+## light sticks
+sets_deep_all %>% drop_na(MM_YN) %>% 
+  ggplot(mapping = aes(x = NUM_LITE_DEVICES, y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 50 )
+## hooks bt floats - no apparent difference
+sets_deep_all %>% drop_na(MM_YN) %>% 
+  ggplot(mapping = aes(x = HKS_PER_FLT, y = ..density.., colour = as.factor(MM_YN))) +
+  geom_freqpoly(binwidth = 2 )
+
+```
+
+
+
