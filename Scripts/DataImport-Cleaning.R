@@ -107,7 +107,7 @@ catch_allyears <- mutate(catch_allyears, SP = ifelse(DAMAGE_CODE == 'SH' | DAMAG
 
 ## indicator for Kept
 catch_allyears <- mutate(catch_allyears, KEPT = ifelse(KEPT_RETURN_CODE_VAL == 'Kept', 1, 0))
-
+   
 ## code sps type - so can sum all fish and other catch categories
 catch_allyears <- mutate(catch_allyears, TYPE = ifelse(grepl('Tuna', SPECIES_COMMON_NAME) | grepl('Fish', SPECIES_COMMON_NAME) |
                                                        grepl('fish', SPECIES_COMMON_NAME) | grepl('Pomfret', SPECIES_COMMON_NAME) |

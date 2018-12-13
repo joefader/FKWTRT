@@ -270,7 +270,7 @@ sets_alldata %>%
   filter((DECLARED_TRIP == 'D')) %>%
   ggplot(aes(x = LAG_DIST, y = MM_sum)) + 
   geom_point()
-
+  
 # dist vs time
 sets_alldata %>%
   filter(DECLARED_TRIP == 'D', DP_LAG1 == 1) %>%
