@@ -437,6 +437,9 @@ write_feather(sets_allyears, "Data/sets_allyears.feather")
 ## have two threads here, one for original and another for the early subset of data I added later
 ## could adapt if other additional pieces needed to add
 
+## 12/15/18 - note did front and other additional oceanographic data just for deep sets,
+## adding in at end after split of shallow/deep
+
 ## Ultimately can merge this with all non-GIS sets from above (sets_allyears) in next section
 
 # import shapefile attribute table - making one GIS data frame of bathy and ocean vars, can update/modify as needed
@@ -737,8 +740,8 @@ sets_deep_all <- sets_deep_all %>%
 sets_deep_all$MM_cut <- cut(sets_deep_all$MM_sum, c(0, 1, 2, 4, 10, Inf), right = FALSE)
 summary(sets_deep_all$MM_cut)
 
-sets_deep_all <- sets_deep_all %>% 
-  mutate(MMdep_rate = MM_sum / )
+#sets_deep_all <- sets_deep_all %>% 
+#  mutate(MMdep_rate = MM_sum / )
                               
                               
 ## split to shallow/deep
@@ -764,4 +767,29 @@ write.csv(sets_alldata, "Data/sets_alldata.csv")
 write.csv(sets_deep_all, "Data/sets_deep_all.csv")
 
 sets_deep_all <- read_feather("Data/sets_deep_all.feather")
+
+
+
+####################################################################################
+### adding additional front/oceanographic data that I did just for deep sets (12/2018)
+####################################################################################
+
+## import table from GIS
+sets_deep_fronts <- as.data.frame(read.csv("Data/GIS_added_files/sets_deep_fronts_2018-12-14.csv", header = TRUE))
+cat(paste(shQuote(colnames(sets_deep_fronts), type="cmd"), collapse=", "))
+
+sets_deep_fronts <- sets_deep_fronts %>%
+  select(c("UID", "TRIP_ID", "VESSEL_ID", "SET_NUM",
+           "nsst_mt9k", "nsst_8d9k", "nsst_ann9k", "front_dis", "tke", "adt", "eke", 
+           "chla_1d_4k", "chla_1d_9k", "chla_8d_4k", "chla_8d_9k", "chla_mo_4k", "chla_mo_9k"))
+
+sets_front_test <- left_join(sets_deep_all, sets_deep_fronts, by = c("ID" = "UID", "TRIP_ID" = "TRIP_ID", "VESSEL_ID" = "VESSEL_ID", "SET_NUM" = "SET_NUM"))
+
+sapply(sets_front_test,class)
+
+cat(paste(shQuote(colnames(sets_alldata_test), type="cmd"), collapse=", "))
+
+
+
+
 
