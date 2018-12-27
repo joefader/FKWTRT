@@ -783,7 +783,7 @@ sets_deep_fronts <- sets_deep_fronts %>%
            "nsst_mt9k", "nsst_8d9k", "nsst_ann9k", "front_dis", "tke", "adt", "eke", 
            "chla_1d_4k", "chla_1d_9k", "chla_8d_4k", "chla_8d_9k", "chla_mo_4k", "chla_mo_9k"))
 
-sets_front_test <- left_join(sets_deep_all, sets_deep_fronts, by = c("ID" = "UID", "TRIP_ID" = "TRIP_ID", "VESSEL_ID" = "VESSEL_ID", "SET_NUM" = "SET_NUM"))
+sets_deep_all <- left_join(sets_deep_all, sets_deep_fronts, by = c("ID" = "UID", "TRIP_ID" = "TRIP_ID", "VESSEL_ID" = "VESSEL_ID", "SET_NUM" = "SET_NUM"))
 
 sapply(sets_front_test,class)
 
