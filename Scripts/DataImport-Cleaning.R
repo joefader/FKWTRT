@@ -639,7 +639,7 @@ sets_alldata <- sets_alldata_test %>%
 sets_alldata_test[duplicated(sets_alldata_test[2:4]),]
 
 ####################################################################################
-### test, change or remove any additional concerns
+### test, change variable types, or address additional concerns
 ####################################################################################
 
 summary(sets_alldata)
@@ -662,6 +662,19 @@ sets_alldata <- sets_alldata %>%
   filter(SET_END_LON > 175 | SET_END_LON < 0) %>%
   #filter(!(SOAK < 120 & NUM_HKS_SET > 1500)) %>%
   filter(NUM_FLTS > 0)
+
+## sets with FKW OR depredation
+sets_alldata <- sets_alldata %>%
+  mutate(MM_any = ifelse(MM_sum >= 1 | FKW == 1, 1, 0))
+
+## SST range
+SST_range <- read_feather("Data/SST_range.feather")
+sets_alldata <- left_join(sets_alldata, SST_range, by=c("TRIP_ID", "VESSEL_ID", "SET_NUM"))
+
+
+####################################################################################
+### lags, distances, levels of depredation
+####################################################################################
 
 #### SET LAG - for now set negatives to NA, should handle double sets better..
 ## end haul to begin set
@@ -697,10 +710,6 @@ sets_alldata <- sets_alldata %>%
 sets_alldata[which(sets_alldata$SET_NUM == 1), "LAG_DIST_HAULS"] <- NA
 sets_alldata <- mutate(sets_alldata, LAG_DIST_HAULS = ifelse(SET_NUM == (lag(SET_NUM) + 1), LAG_DIST_HAULS, NA))
 
-## sets with FKW OR depredation
-sets_alldata <- sets_alldata %>%
-  mutate(MM_any = ifelse(MM_sum >= 1 | FKW == 1, 1, 0))
-
 ## previous set DP
 sets_alldata <- sets_alldata %>%
 	mutate(DP_LAG1 = ifelse(lag(MM_YN == 1), 1, 0)) %>%
@@ -722,10 +731,6 @@ sets_alldata <- sets_alldata %>%
   mutate(DP_LAG_NUM = lag(MM_sum)) %>%
   mutate(DP_LAG_NUM = ifelse(SET_NUM == (lag(SET_NUM) + 1), DP_LAG_NUM, NA))
 
-## SST range
-SST_range <- read_feather("Data/SST_range.feather")
-sets_alldata <- left_join(sets_alldata, SST_range, by=c("TRIP_ID", "VESSEL_ID", "SET_NUM"))
-
 
 ## level of depredation
 sets_deep_all <- sets_deep_all %>% 
@@ -734,6 +739,7 @@ sets_deep_all <- sets_deep_all %>%
                                    ifelse(MM_sum > 5 & MM_sum <= 10, "6-10",
                                           ifelse(MM_sum > 10 & MM_sum <= 20, "1-5",
                                                  ifelse(MM_sum > 20, "20+", "NA"))))))
+
 sets_deep_all <- sets_deep_all %>% 
   mutate(MMdep_level = as.factor(MMdep_level))
 
@@ -743,7 +749,12 @@ summary(sets_deep_all$MM_cut)
 #sets_deep_all <- sets_deep_all %>% 
 #  mutate(MMdep_rate = MM_sum / )
                               
-                              
+        
+####################################################################################
+### split gear types, save csvs/feathers
+####################################################################################
+
+                      
 ## split to shallow/deep
 # all sets pre 6/22/04 are classified as deep sets,
 sets_deep_all <- sets_alldata %>%
@@ -771,7 +782,7 @@ sets_deep_all <- read_feather("Data/sets_deep_all.feather")
 
 
 ####################################################################################
-### adding additional front/oceanographic data that I did just for deep sets (12/2018)
+### adding additional front/oceanographic data that I did just for deep sets (12/2018) - also chlorophyll
 ####################################################################################
 
 ## import table from GIS
@@ -789,7 +800,29 @@ sapply(sets_front_test,class)
 
 cat(paste(shQuote(colnames(sets_alldata_test), type="cmd"), collapse=", "))
 
+sets_deep_all <- sets_deep_all %>% mutate(front_dis = ifelse(front_dis == -9999, NA, front_dis))
 
 
+## chlorophyll - original GIS file has 6 different resolutions, see how many NAs, monthly 9km is lowest
+## located here after 'split' because this came from only deep sets
 
+## setting -9999 to NA and counting NAs for different chlorophyl measurements
+# (chla_1d_4k, chla_1d_9k, chla_8d_4k, chla_8d_9k, chla_mo_4k, chla_mo_9k)
+sets_deep_all <- sets_deep_all %>% mutate(chla_1d_4k = ifelse(chla_1d_4k == -9999, NA, chla_1d_4k))
+sets_deep_all <- sets_deep_all %>% mutate(chla_1d_9k = ifelse(chla_1d_9k == -9999, NA, chla_1d_9k))
+sets_deep_all <- sets_deep_all %>% mutate(chla_8d_4k = ifelse(chla_8d_4k == -9999, NA, chla_8d_4k))
+sets_deep_all <- sets_deep_all %>% mutate(chla_8d_9k = ifelse(chla_8d_9k == -9999, NA, chla_8d_9k))
+sets_deep_all <- sets_deep_all %>% mutate(chla_mo_4k = ifelse(chla_mo_4k == -9999, NA, chla_mo_4k))
+sets_deep_all <- sets_deep_all %>% mutate(chla_mo_9k = ifelse(chla_mo_9k == -9999, NA, chla_mo_9k))
 
+# add up NAs for each type
+c(sum(is.na(sets_deep_all$chla_1d_4k)), sum(is.na(sets_deep_all$chla_1d_9k)), 
+  sum(is.na(sets_deep_all$chla_8d_4k)), sum(is.na(sets_deep_all$chla_8d_9k)),
+  sum(is.na(sets_deep_all$chla_mo_4k)), sum(is.na(sets_deep_all$chla_mo_9k)),
+  sum(is.na(sets_deep_all$ChlA)))
+
+## remove chlorophylls not using (all but monthly 9km)
+sets_deep_all <- sets_deep_all %>% select(-c(chla_1d_4k, chla_1d_9k, chla_8d_4k, chla_8d_9k, chla_mo_4k, ChlA))
+
+## look at diff SST variables
+View(sets_deep_all[,grepl('sst', colnames(sets_deep_all)) | grepl('SST', colnames(sets_deep_all))])

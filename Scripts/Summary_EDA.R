@@ -572,7 +572,7 @@ ggplot(data = sets_deep_all, mapping = aes(x = MM_YN, y = SHARKS)) +
 
 
 ## effect of surrounding vessel cpue on depredation
-ggplot(data = sets_deep_test, mapping = aes(x = avg_cpue, y = ..density.., 
+ggplot(data = sets_deep_all, mapping = aes(x = cpue_avg, y = ..density.., 
                                            colour = MM_YN)) + geom_freqpoly(binwidth = 2) +
   theme_classic() + ylab("Density") + xlab("Marketable fish / 1000 hooks") +
   scale_x_continuous(breaks=seq(0,50,10),limits=c(0,50)) + labs(color="Depredation") +
@@ -581,13 +581,13 @@ ggplot(data = sets_deep_test, mapping = aes(x = avg_cpue, y = ..density..,
         axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
         axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
         legend.position = c(0.8, 0.8))
-ggplot(data = sets_deep_test, mapping = aes(x = MM_YN, y = avg_cpue)) +
+ggplot(data = sets_deep_all, mapping = aes(x = MM_YN, y = cpue_avg)) +
   geom_boxplot()
 
 
-ggplot(data = sets_deep_test, mapping = aes(x = avg_cpue, y = ..density.., 
-                                             colour = MM_cut)) + geom_freqpoly(binwidth = )
-ggplot(data = sets_deep_test, mapping = aes(x = MM_cut, y = avg_cpue)) + geom_boxplot() +
+ggplot(data = sets_deep_all, mapping = aes(x = cpue_avg, y = ..density.., 
+                                             colour = MM_cut)) + geom_freqpoly(binwidth = 3)
+ggplot(data = sets_deep_all, mapping = aes(x = MM_cut, y = cpue_avg)) + geom_boxplot() +
   theme_classic()
 #############################################################################
 ### GIS stuff
@@ -681,23 +681,10 @@ sets_deep_all %>%
   # ggplot(aes(x = tke, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   # ggplot(aes(x = adt, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   # ggplot(aes(x = eke, y = ..density.., colour = MM_YN)) + geom_freqpoly()
-  ggplot(aes(x = chla_1d_4k, y = ..density.., colour = MM_YN)) + geom_freqpoly()
-  # ggplot(aes(x = eke, y = ..density.., colour = MM_YN)) + geom_freqpoly()
+  # ggplot(aes(x = chla_mo_9k, y = ..density.., colour = MM_YN)) + geom_freqpoly()
+  # ggplot(aes(x = SSH, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   
-## chlorophyll
-## setting -9999 to NA and counting NAs for different chlorophyl measurements
-# (chla_1d_4k, chla_1d_9k, chla_8d_4k, chla_8d_9k, chla_mo_4k, chla_mo_9k)
-sets_deep_all <- sets_deep_all %>% mutate(chla_1d_4k = ifelse(chla_1d_4k == -9999, NA, chla_1d_4k))
-sets_deep_all <- sets_deep_all %>% mutate(chla_1d_9k = ifelse(chla_1d_9k == -9999, NA, chla_1d_9k))
-sets_deep_all <- sets_deep_all %>% mutate(chla_8d_4k = ifelse(chla_8d_4k == -9999, NA, chla_8d_4k))
-sets_deep_all <- sets_deep_all %>% mutate(chla_8d_9k = ifelse(chla_8d_9k == -9999, NA, chla_8d_9k))
-sets_deep_all <- sets_deep_all %>% mutate(chla_mo_4k = ifelse(chla_mo_4k == -9999, NA, chla_mo_4k))
-sets_deep_all <- sets_deep_all %>% mutate(chla_mo_9k = ifelse(chla_mo_9k == -9999, NA, chla_mo_9k))
 
-c(sum(is.na(sets_deep_all$chla_1d_4k)), sum(is.na(sets_deep_all$chla_1d_9k)), 
-  sum(is.na(sets_deep_all$chla_8d_4k)), sum(is.na(sets_deep_all$chla_8d_9k)),
-  sum(is.na(sets_deep_all$chla_mo_4k)), sum(is.na(sets_deep_all$chla_mo_9k)),
-  sum(is.na(sets_deep_all$ChlA)))
 
 #############################################################################
 ### depredation
