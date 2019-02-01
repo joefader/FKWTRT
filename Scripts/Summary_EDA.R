@@ -89,7 +89,7 @@ qable(sum_tab)
 #############################################################################
 
 pairs(sets_alldata)
-
+?pairs
 # correlation among vars, have to remove categorical and nas
 # if remove all nas, only 20 observations left
 #sets_deep_nona <- sets_deep_all %>% drop_na()
@@ -110,6 +110,7 @@ cortable <- as.data.frame(cor(subset(sets_deep_all, select = c("HAUL_BEGIN_LAT",
                                                       "Seamt_Dist", "Seamt_Height", "Seamt_Depth", "EDDY_DIST", "AMPLITUDE", "SPEED",
                                                       "RADIUS", "SST_2", "ChlA", "SSH", "Moon_Illum", "ONI")), use = "complete.obs"))
 write.csv(cortable,"Docs/cortable.csv")
+prin
 sapply(sets_deep_all,class)
 ## correlate MM depredation with numeric preditors, cor2m keeps only those significant at .05
 # make sure factor considered as 1,0 - had to convert to chr first
@@ -140,8 +141,8 @@ sets_deep_habcorr <- sets_deep_num %>% drop_na() %>%
 sets_deep_all %>%
   filter(MONTH == 6) %>%
   ggplot(aes(x=YEAR, y=ONI)) + geom_jitter()
-ggplot(sets_deep_all,aes(x=SST_2, y=HAUL_BEGIN_LAT, colour=MM_YN)) +
-  geom_jitter()
+ggplot(sets_deep_all,aes(x=SST_2, y=HAUL_BEGIN_LAT, colour=MM_YN)) + geom_jitter()
+
 ggplot(sets_deep_all,aes(x=YEAR, y=MIN_LEN)) +
   geom_smooth()
 #############################################################################
@@ -286,13 +287,22 @@ sets_alldata %>%
   geom_point() + facet_grid(MM_YN~.)
 
 
-
 ## position
 sets_alldata %>%
   filter((DECLARED_TRIP == 'D')) %>%
   ggplot(aes(x = HAUL_BEGIN_LAT, y = MM_YN)) + geom_point()
 ggplot(data = sets_deep_all, mapping = aes(x = HAUL_BEGIN_LAT, y = ..density.., colour = MM_YN)) +
-  geom_freqpoly(binwidth = 1 )
+  geom_freqpoly(binwidth = 5)
+
+# latitude with ssh
+sets_deep_all %>% 
+  ggplot(aes(x = HAUL_BEGIN_LAT, y = adt, colour = MM_YN)) + geom_jitter()
+
+sets_deep_all %>% 
+  # ggplot(aes(x = HAUL_BEGIN_LON, y = HAUL_BEGIN_LAT, colour = adt)) + geom_jitter() +
+  # ggplot(aes(x = HAUL_BEGIN_LON, y = HAUL_BEGIN_LAT, colour = tke)) + geom_jitter() +
+  ggplot(aes(x = HAUL_BEGIN_LON, y = HAUL_BEGIN_LAT, colour = chla_mo_9k)) + geom_jitter() +
+  facet_wrap(~ MONTH)
 
 ggplot(sets_deep_all, aes(x = HAUL_BEGIN_LAT, y = ..density.., colour = MM_YN)) +
   geom_freqpoly(binwidth = 5 )
@@ -580,14 +590,14 @@ ggplot(data = sets_deep_all, mapping = aes(x = cpue_avg, y = ..density..,
   theme(text = element_text(size=25), 
         axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
         axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
-        legend.position = c(0.8, 0.8))
+        legend.position = c(0.8, 0.8)) + 
 ggplot(data = sets_deep_all, mapping = aes(x = MM_YN, y = cpue_avg)) +
   geom_boxplot()
 
 
 ggplot(data = sets_deep_all, mapping = aes(x = cpue_avg, y = ..density.., 
                                              colour = MM_cut)) + geom_freqpoly(binwidth = 3)
-ggplot(data = sets_deep_all, mapping = aes(x = MM_cut, y = cpue_avg)) + geom_boxplot() +
+ggplot(data = sets_deep_all, mapping = aes(x = MM_cut, y = cpue_n)) + geom_boxplot() +
   theme_classic()
 #############################################################################
 ### GIS stuff
@@ -634,13 +644,29 @@ ggplot(data = sets_deep_all, mapping = aes(x = MM_YN, y = EDDY_DIST/1000)) +
 ggplot(data = sets_deep_all, mapping = aes(x = EDDY_DIST^0.5, y = ..density.., colour = MM_YN)) +
   geom_freqpoly(binwidth = 20 )
 
-## Eddy chars
+## Eddy chars with depredation
 ggplot(data = sets_deep_all, mapping = aes(x = SPEED, y = ..density.., colour = MM_YN)) +
   geom_freqpoly(binwidth = 10)
 ggplot(data = sets_deep_all, mapping = aes(x = RADIUS, y = ..density.., colour = MM_YN)) +
   geom_freqpoly(binwidth = 10 )
 ggplot(data = sets_deep_all, mapping = aes(x = AMPLITUDE, y = ..density.., colour = MM_YN)) +
   geom_freqpoly(binwidth = 10 )
+
+# explore eddy features
+sets_deep_all %>%
+  ggplot(aes(x = SPEED, y = ..density.., colour = CYCL_TYPE)) + geom_freqpoly(binwidth = 10 )
+  # ggplot(aes(x = RADIUS, y = ..density.., colour = CYCL_TYPE)) + geom_freqpoly(binwidth = 20 )
+  # ggplot(aes(x = AMPLITUDE, y = ..density.., colour = CYCL_TYPE)) + geom_freqpoly(binwidth = 2)
+sets_deep_all %>% 
+  ggplot(aes(x = RADIUS, y = AMPLITUDE, colour = CYCL_TYPE)) + geom_jitter()
+  # ggplot(aes(x = RADIUS, y = SPEED, colour = CYCL_TYPE)) + geom_jitter()
+  # ggplot(aes(x = AMPLITUDE, y = SPEED, colour = CYCL_TYPE)) + geom_jitter()
+sets_deep_all %>% 
+  ggplot(aes(x = tke, y = eke, colour = CYCL_TYPE)) + geom_jitter()
+  # ggplot(aes(x = tke, y = RADIUS, colour = CYCL_TYPE)) + geom_jitter()
+  # ggplot(aes(x = tke, y = AMPLITUDE, colour = CYCL_TYPE)) + geom_jitter()
+  # ggplot(aes(x = tke, y = SPEED, colour = CYCL_TYPE)) + geom_jitter()
+
 
 summary(as.factor(sets_deep_all$CYCL_TYPE))
 ggplot(data = sets_deep_all, aes(x = MM_YN, y = CYCL_TYPE)) +
@@ -661,10 +687,10 @@ ggplot(data = sets_deep_all, mapping = aes(x = SST_RANGE, y = ..density.., colou
 ggplot(data = sets_deep_all, mapping = aes(x = SST_RANGE)) +
   geom_histogram(binwidth = 0.2 )
 
-## ChlA
+## ChlA - monthly at 9 km
 sets_deep_all %>%
-  #filter(EL_LA_NO == 'EL') %>%
-  ggplot(mapping = aes(x = ChlA, y = ..density.., colour = MM_YN)) +
+  filter(EL_LA_NO == 'EL') %>%
+  ggplot(mapping = aes(x = chla_mo_9k, y = ..density.., colour = MM_YN)) +
   geom_freqpoly(binwidth = 0.01 )
 
 
@@ -675,14 +701,14 @@ sets_deep_all %>%
   )
 
 
-## fronts
+## fronts and other oceanographics
 sets_deep_all %>%
-  # ggplot(aes(x = front_dis/1000, y = ..density.., colour = MM_YN)) + geom_freqpoly()
+  # ggplot(aes(x = front_dis/1000, y = ..density.., colour = MM_YN)) + geom_freqpoly(bins = 10)
   # ggplot(aes(x = tke, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   # ggplot(aes(x = adt, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   # ggplot(aes(x = eke, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   # ggplot(aes(x = chla_mo_9k, y = ..density.., colour = MM_YN)) + geom_freqpoly()
-  # ggplot(aes(x = SSH, y = ..density.., colour = MM_YN)) + geom_freqpoly()
+  ggplot(aes(x = SSH, y = ..density.., colour = MM_YN)) + geom_freqpoly()
   
 
 
@@ -970,18 +996,24 @@ ggplot(data = sets_deep_all, mapping = aes(x = ONI, y = ..density.., colour = MM
 
 ## histo of chlorophyll relationship in el nino years, with MMYN
 sets_deep_all %>%
-  ggplot(aes(x=ChlA, y=..density.., colour=MM_YN)) + geom_freqpoly(binwidth=0.01) +
+  ggplot(aes(x=chla_mo_9k, y=..density.., colour=MM_YN)) + geom_freqpoly(binwidth=0.01) +
   facet_grid(EL_LA_NO~.) + theme_classic() +scale_x_continuous(limits=c(0,0.2))
 
 # location in elnino
 sets_deep_all %>%
-  ggplot(aes(x=HAUL_BEGIN_LAT, colour=EL_LA_NO)) + geom_freqpoly(binwidth=1)+ ylab("Count") + xlab("Haul Begin Latitude") + theme_classic()
+  ggplot(aes(x=HAUL_BEGIN_LAT, colour=EL_LA_NO)) + geom_freqpoly(binwidth=1)+ ylab("Count") + 
+  xlab("Haul Begin Latitude") + theme_classic()
 
+# chla by enso and month
+sets_deep_all %>% 
+  ggplot(aes(x = HAUL_BEGIN_LON, y = HAUL_BEGIN_LAT, colour = chla_mo_9k)) + geom_jitter() +
+  facet_wrap(EL_LA_NO ~ MONTH)
 
 ## need to look at rate of depredation, over months in different el ninos
-# this on just number of sets with MM, by el nino
+# this on just number of sets with MM, by el nino - so basically just fishing more in winter and/or
+# less in summer during el/la compared to non enso years
 sets_deep_all %>%
-  filter(MM_YN == 1) %>%
+  # filter(MM_YN == 1) %>%
   ggplot(aes(x=MONTH, colour=EL_LA_NO, y =..density..)) + geom_freqpoly(binwidth=1)+
   theme_classic() + ylab("Relative Depredation") + scale_x_discrete(name ="Month", limits=c(1:12))
   
@@ -1063,7 +1095,7 @@ ggplot(sets_deep_all, aes(x =EL_LA_NO, y = as.numeric(MM_YN))) +
 
 sets_deep_all %>%
   group_by(EL_LA_NO, MONTH) %>%
-  ggplot(aes(x=ChlA, y=..density.., colour=MM_YN)) + geom_freqpoly(binwidth=0.1) + 
+  ggplot(aes(x=chla_mo_9k, y=..density.., colour=MM_YN)) + geom_freqpoly(binwidth=0.1) + 
   facet_grid(EL_LA_NO~MONTH)
 
   summarise(

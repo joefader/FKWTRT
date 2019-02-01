@@ -6,9 +6,9 @@
 
 library(tidyverse)
 library(lubridate)
-library(chron)
-library(ecodist)
+#library(chron) - blocks days function in lubridate
 library(feather)
+library(fields)
 
 sets_deep_all <- read_feather("Data/sets_deep_all.feather")
 
@@ -43,30 +43,28 @@ filter_dist <- function(x){
              mdy(HAUL_BEGIN_DATE) <= mdy(x["HAUL_BEGIN_DATE"]) + days(3)) %>%
     filter(rdist.earth.vec(coordinates,
                            matrix(c(HAUL_BEGIN_LON, HAUL_BEGIN_LAT), ncol=2),
-                           miles = F, R = 6371) < 100) %>% 
+                           miles = F, R = 6371) <= 100) %>% 
    summarise(mean(CPUE, na.rm=T)) %>% as_vector()
 }
 
 ### assign value for each row to corresponding row in df
-sets_deep_all[, "cpue_avg"] <- apply(sets_deep_all, 1, filter_dist)
+sets_deep_all[, "cpue_avg_3d_100k"] <- apply(sets_deep_all, 1, filter_dist)
+sets_deep_all[, "cpue_avg_1d_100k"] <- apply(sets_deep_all, 1, filter_dist)
 
 ### same function as above but gives 'n' for how many were averaged
 filter_n <- function(x){
   coordinates <- matrix(c(as.numeric(x["HAUL_BEGIN_LON"]), as.numeric(x["HAUL_BEGIN_LAT"])), ncol=2)
-  sets_deep_test %>%
+  sets_deep_all %>%
     filter(mdy(HAUL_BEGIN_DATE) >= mdy(x["HAUL_BEGIN_DATE"]) - days(3) &
              mdy(HAUL_BEGIN_DATE) <= mdy(x["HAUL_BEGIN_DATE"]) + days(3)) %>%
     filter(rdist.earth.vec(coordinates,
                            matrix(c(HAUL_BEGIN_LON, HAUL_BEGIN_LAT), ncol=2),
-                           miles = F, R = 6371) < 100) %>% 
+                           miles = F, R = 6371) <= 100) %>% 
     summarise(n()) %>% as_vector()
 }
 
-sets_deep_all[, "cpue_n"] <- apply(sets_deep_all, 1, filter_n)
-
-
-
-
+sets_deep_all[, "num_vessels_3d_100k"] <- apply(sets_deep_all, 1, filter_n)
+sets_deep_all[, "num_vessels_1d_100k"] <- apply(sets_deep_all, 1, filter_n)
 
 
 
