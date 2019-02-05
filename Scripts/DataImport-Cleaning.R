@@ -13,6 +13,7 @@ library(feather)
 library(fields)
 
 
+
 #############################################################################
 ### get data into R
 #############################################################################
@@ -663,7 +664,7 @@ sets_alldata <- sets_alldata %>%
   #filter(!(SOAK < 120 & NUM_HKS_SET > 1500)) %>%
   filter(NUM_FLTS > 0)
 
-## sets with FKW OR depredation
+## indicator for sets with FKW OR depredation
 sets_alldata <- sets_alldata %>%
   mutate(MM_any = ifelse(MM_sum >= 1 | FKW == 1, 1, 0))
 
@@ -739,10 +740,11 @@ sets_deep_all <- sets_deep_all %>%
                                    ifelse(MM_sum > 5 & MM_sum <= 10, "6-10",
                                           ifelse(MM_sum > 10 & MM_sum <= 20, "1-5",
                                                  ifelse(MM_sum > 20, "20+", "NA"))))))
-
+# make categorical factor
 sets_deep_all <- sets_deep_all %>% 
   mutate(MMdep_level = as.factor(MMdep_level))
 
+# as bins
 sets_deep_all$MM_cut <- cut(sets_deep_all$MM_sum, c(0, 1, 2, 4, 10, Inf), right = FALSE)
 summary(sets_deep_all$MM_cut)
 
@@ -777,13 +779,18 @@ sapply(sets_alldata,class)
 write.csv(sets_alldata, "Data/sets_alldata.csv")
 write.csv(sets_deep_all, "Data/sets_deep_all.csv")
 
+# open from here with all previous processing done
+sets_alldata <- read_feather("Data/sets_alldata.feather")
 sets_deep_all <- read_feather("Data/sets_deep_all.feather")
+sets_shallow_all <- read_feather("Data/sets_shallow_all.feather")
 
 
 
 ####################################################################################
-### adding additional front/oceanographic data that I did just for deep sets (12/2018) - also chlorophyll
+### adding additional front/oceanographic data that I did just for deep sets (12/2018)
 ####################################################################################
+
+#### also compare some oceanographic variables from original data acquisition (chla, SST, SSH)
 
 ## import table from GIS
 sets_deep_fronts <- as.data.frame(read.csv("Data/GIS_added_files/sets_deep_fronts_2018-12-14.csv", header = TRUE))
@@ -796,15 +803,16 @@ sets_deep_fronts <- sets_deep_fronts %>%
 
 sets_deep_all <- left_join(sets_deep_all, sets_deep_fronts, by = c("ID" = "UID", "TRIP_ID" = "TRIP_ID", "VESSEL_ID" = "VESSEL_ID", "SET_NUM" = "SET_NUM"))
 
-sapply(sets_front_test,class)
+sapply(sets_deep_all,class)
 
-cat(paste(shQuote(colnames(sets_alldata_test), type="cmd"), collapse=", "))
+cat(paste(shQuote(colnames(sets_deep_all), type="cmd"), collapse=", "))
 
+## fix NAs
+# fronts
 sets_deep_all <- sets_deep_all %>% mutate(front_dis = ifelse(front_dis == -9999, NA, front_dis))
 
-
-## chlorophyll - original GIS file has 6 different resolutions, see how many NAs, monthly 9km is lowest
-## located here after 'split' because this came from only deep sets
+# chlorophyll - original GIS file has 6 different resolutions, see how many NAs, monthly 9km is lowest
+# located here after 'split' of deep/shallow because this came from only deep sets
 
 ## setting -9999 to NA and counting NAs for different chlorophyl measurements
 # (chla_1d_4k, chla_1d_9k, chla_8d_4k, chla_8d_9k, chla_mo_4k, chla_mo_9k)
@@ -821,8 +829,31 @@ c(sum(is.na(sets_deep_all$chla_1d_4k)), sum(is.na(sets_deep_all$chla_1d_9k)),
   sum(is.na(sets_deep_all$chla_mo_4k)), sum(is.na(sets_deep_all$chla_mo_9k)),
   sum(is.na(sets_deep_all$ChlA)))
 
-## remove chlorophylls not using (all but monthly 9km)
+## remove chlorophylls not using (all but monthly 9km, including ChlA from earlier analysis)
 sets_deep_all <- sets_deep_all %>% select(-c(chla_1d_4k, chla_1d_9k, chla_8d_4k, chla_8d_9k, chla_mo_4k, ChlA))
 
-## look at diff SST variables
+## look at diff SST and SSH variables
 View(sets_deep_all[,grepl('sst', colnames(sets_deep_all)) | grepl('SST', colnames(sets_deep_all))])
+sets_deep_all <- sets_deep_all %>% mutate(nsst_mt9k = ifelse(nsst_mt9k == -9999, NA, nsst_mt9k))
+sets_deep_all <- sets_deep_all %>% mutate(nsst_8d9k = ifelse(nsst_8d9k == -9999, NA, nsst_8d9k))
+sets_deep_all <- sets_deep_all %>% mutate(nsst_ann9k = ifelse(nsst_ann9k == -9999, NA, nsst_ann9k))
+
+## add up NAs for sst and ssh variables
+# L4 daily SST has no NAs bc interpolated, L3 products have minimum of almost 10% NAs
+# note CEMSs' adt has no NAs compared to AVISOs' SSH - values nearly identical otherwise
+c(sum(is.na(sets_deep_all$SST_2)), sum(is.na(sets_deep_all$nsst_mt9k)), 
+  sum(is.na(sets_deep_all$nsst_8d9k)), sum(is.na(sets_deep_all$nsst_ann9k)),
+  sum(is.na(sets_deep_all$SSH)), sum(is.na(sets_deep_all$adt)))
+  
+cor(sets_deep_all$SSH, sets_deep_all$adt, use = "complete.obs")
+  
+# remove SSH which has many more NAs than adt
+sets_deep_all <- sets_deep_all %>% select(-c(SSH))
+
+
+## can start here for just deep set
+write_feather(sets_deep_all, "Data/sets_deep_all.feather")
+sets_deep_all <- read_feather("Data/sets_deep_all.feather")
+
+
+

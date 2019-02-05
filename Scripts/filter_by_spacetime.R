@@ -39,8 +39,8 @@ sapply(sets_deep_all, class)
 filter_dist <- function(x){
   coordinates <- matrix(c(as.numeric(x["HAUL_BEGIN_LON"]), as.numeric(x["HAUL_BEGIN_LAT"])), ncol=2)
   sets_deep_all %>%
-    filter(mdy(HAUL_BEGIN_DATE) >= mdy(x["HAUL_BEGIN_DATE"]) - days(3) &
-             mdy(HAUL_BEGIN_DATE) <= mdy(x["HAUL_BEGIN_DATE"]) + days(3)) %>%
+    filter(mdy(HAUL_BEGIN_DATE) >= mdy(x["HAUL_BEGIN_DATE"]) - days(1) &
+             mdy(HAUL_BEGIN_DATE) <= mdy(x["HAUL_BEGIN_DATE"]) + days(1)) %>%
     filter(rdist.earth.vec(coordinates,
                            matrix(c(HAUL_BEGIN_LON, HAUL_BEGIN_LAT), ncol=2),
                            miles = F, R = 6371) <= 100) %>% 
@@ -55,8 +55,8 @@ sets_deep_all[, "cpue_avg_1d_100k"] <- apply(sets_deep_all, 1, filter_dist)
 filter_n <- function(x){
   coordinates <- matrix(c(as.numeric(x["HAUL_BEGIN_LON"]), as.numeric(x["HAUL_BEGIN_LAT"])), ncol=2)
   sets_deep_all %>%
-    filter(mdy(HAUL_BEGIN_DATE) >= mdy(x["HAUL_BEGIN_DATE"]) - days(3) &
-             mdy(HAUL_BEGIN_DATE) <= mdy(x["HAUL_BEGIN_DATE"]) + days(3)) %>%
+    filter(mdy(HAUL_BEGIN_DATE) >= mdy(x["HAUL_BEGIN_DATE"]) - days(1) &
+             mdy(HAUL_BEGIN_DATE) <= mdy(x["HAUL_BEGIN_DATE"]) + days(1)) %>%
     filter(rdist.earth.vec(coordinates,
                            matrix(c(HAUL_BEGIN_LON, HAUL_BEGIN_LAT), ncol=2),
                            miles = F, R = 6371) <= 100) %>% 
@@ -67,4 +67,4 @@ sets_deep_all[, "num_vessels_3d_100k"] <- apply(sets_deep_all, 1, filter_n)
 sets_deep_all[, "num_vessels_1d_100k"] <- apply(sets_deep_all, 1, filter_n)
 
 
-
+View(sets_deep_all[,90:102])
