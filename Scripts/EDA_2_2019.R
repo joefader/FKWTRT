@@ -17,7 +17,12 @@ sets_shallow_all <- read_feather("Data/sets_shallow_all.feather")
 #############################################################################
 
 sapply(sets_deep_all, class)
+sapply(sets_deep_numeric, class)
+
 cat(paste(shQuote(colnames(sets_deep_all), type="cmd"), collapse=", "))
+
+sets_deep_numeric <- Filter(is.numeric, sets_deep_all)
+is.numeric(sets_deep_numeric$SET_NUM)
 
 # make data frame of only variables to inspect
 sets_deep_forcorr <- subset(sets_deep_all, select = c(
@@ -31,10 +36,16 @@ sets_deep_forcorr <- subset(sets_deep_all, select = c(
   "LAG_DIST_HAULS", "front_dis", "tke", "adt", "eke", "chla_mo_9k", "cpue_avg_3d_100k", 
   "num_vessels_3d_100k", "cpue_avg_1d_100k", "num_vessels_1d_100k"))
 
+## make a correlation table - only numeric of course
+# note cor uses 'use' to determine what to do with nas
+cortable <- as.data.frame(cor(Filter(is.numeric, sets_deep_forcorr), use = "na.or.complete"))
+
+
 
 ### testing diff corr plots
 
 ## base r..
+# filter only numerics, still figure too large (79 variables)
 pairs(Filter(is.numeric, sets_deep_all))
 sets_deep_numeric <- Filter(is.numeric, sets_deep_all)
 
@@ -43,7 +54,6 @@ sets_deep_numeric <- Filter(is.numeric, sets_deep_all)
 pdf(file = "Docs/pairplots.pdf", height=15, width=15) 
 pairs(Filter(is.numeric, sets_deep_all))
 dev.off() 
-
 
 ## ggpairs in GGally (extension to ggplot2)
 ?ggpairs
@@ -54,7 +64,6 @@ dev.off()
 
 pairsplot <- ggpairs(sets_deep_forcorr, gap=0)
 quartz(width=100, height=100)   #make a big graphics window 
-
 
 
 ## ggplot2 - apparently not in dplyr anymore
