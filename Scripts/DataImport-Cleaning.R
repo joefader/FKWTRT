@@ -851,7 +851,7 @@ cor(sets_deep_all$SSH, sets_deep_all$adt, use = "complete.obs")
 sets_deep_all <- sets_deep_all %>% select(-c(SSH))
 
 
-## can start here for just deep set
+## can start here for just deep set -- note should include 'filter_by_spacetime' additions
 write_feather(sets_deep_all, "Data/sets_deep_all.feather")
 sets_deep_all <- read_feather("Data/sets_deep_all.feather")
 

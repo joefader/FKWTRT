@@ -68,3 +68,7 @@ sets_deep_all[, "num_vessels_1d_100k"] <- apply(sets_deep_all, 1, filter_n)
 
 
 View(sets_deep_all[,90:102])
+
+write_feather(sets_deep_all, "Data/sets_deep_all.feather")
+sets_deep_all <- read_feather("Data/sets_deep_all.feather")
+
