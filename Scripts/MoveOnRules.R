@@ -10,8 +10,8 @@ library(feather) # easy and useful for saving and loading dataframes in R
 library(ggplot2)
 library(metR)  # some meteorological package, allows adding contour labels to ggplot
 library(directlabels) # other option for getting labels on contours
-
-
+library(RColorBrewer)
+library(reshape)
 ## import data
 moveon_tbl <- read.csv("Data/MoveOnRules/SQ4_compiled.csv")
 moveon_tbl_hrs <- read.csv("Data/MoveOnRules/MoveOnHours.csv")
@@ -52,7 +52,7 @@ moveon_tbl %>%
 
 #moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ4_hours240_25_500km_compiled.csv")
 #moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/days10_km500/SQ1_days10_km500_compiled.csv")
-moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/MM_any_compiled.csv")
+moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ2_hours240_25_500km_compiled.csv")
 #moveon_tbl <- read.csv("Data/MoveOnRules/SEFSC_moveon_500k_10d_compiled.csv")
 ## contour of marked probabilities - set for days and km
 moveon_tbl %>%
@@ -63,11 +63,8 @@ moveon_tbl %>%
   geom_text_contour(aes(z = prob_marked_in*100), stroke = 0.3, 
                     binwidth= 5, color = "red", rotate = T, size = 6) +
   theme(text = element_text(size=18)) +
-  # ggtitle("SEFSC  - 1 d x 25 km") +
-  #ggtitle("South, Quarter 1 - 1 day x 50 km") +
-  ggtitle("All vessels - 12 h x 50 km") +
-  #ggtitle("South, Quarter 4 - 12 h x 50 km") +
-  ylab("Days since previous set") + xlab("Distance since previous set (km)") +
+  ggtitle("North, Quarter 1 - 12 h x 50 km") +
+  ylab("Hours since previous set") + xlab("Distance since previous set (km)") +
   # scale_x_continuous(breaks=seq(0,500,50),limits=c(25,500)) +
   # scale_y_continuous(breaks=seq(0,240,24),limits=c(0,240)) +
   # scale_y_continuous(breaks=seq(0,10,1),limits=c(0,10)) +
@@ -78,6 +75,39 @@ moveon_tbl %>%
   #geom_text_contour(aes(z = prob_marked_in), stroke = 0.2, check_overlap=T, rotate = T)
   #geom_label_contour(aes(z = prob_marked_in))
 direct.label(g, method="bottom.pieces")
+
+
+## playing around with different metrics to visualize
+# ratio of marked:umarked, percent reduction, etc
+moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/SQ1_hours240_25_500km_compiled.csv")
+moveon_tbl %>%
+  #filter(days <= 120 & distance <= 250) %>% 
+  ggplot(aes(x = distance, y = days, 
+             fill =  100*(1 - (prob_marked_in/max(moveon_tbl$prob_marked_in))))) + 
+  theme_classic() + 
+  geom_tile() +
+  # scale_fill_gradient(low = "red", high = "blue", limits = c(0, 99)) +
+  scale_fill_gradientn(colours = c("red", "blue"),
+                       guide = "colourbar",
+                       limits = c(0, 99),
+                       breaks = c(0, 50, 99),
+                       labels = c("0", "50", "100")) +
+  # geom_tile(mapping = aes(fill = 
+  #         100*(1 - (prob_marked_in/max(moveon_tbl$prob_marked_in))))) +  ### percent reduction from max rate
+  geom_text(mapping = aes(label = 
+          round(100*(1 - (prob_marked_in/max(moveon_tbl$prob_marked_in))), digits =1))) +  ## add value to tiles
+  theme(text = element_text(size=18)) +
+  #ggtitle("North, Quarter 3 - 12 h x 50 km") +
+  ylab("Days since previous set") + xlab("Distance since previous set (km)") +
+  scale_x_continuous(breaks=seq(0,250,50),limits=c(12,265))+ #,expand = c(0,0)) +
+  scale_y_continuous(breaks=seq(0,120,24),limits=c(6,126), 
+                     labels=c("0", "1", "2", "3", "4", "5"))+ #, expand = c(0,0)) +
+  #scale_color_continuous(name = "Prob. rpt. depr.") +
+  theme(legend.justification=c(1, 0), legend.position=c(1, .7)) +
+  labs(fill='percent 
+ reduction') 
+
+
 
 moveon_tbl %>%
   ggplot(mapping = aes(x = distance, y = days)) + theme_bw() +
