@@ -32,7 +32,7 @@ sapply(sets_deep_all, class)
 ## make test dataset to play with
 # sets_deep_test <- sets_deep_all %>% select(-c(SOAK:NONTARGET)) %>% filter(YEAR == 2010 & MONTH ==5)
 
-### filtering function: makes matrix of rows coordinates, 
+### filtering function: makes matrix of rows coordinates,
 ### puts all sets within specified space/time in temp file, and
 ### averages specified value (cpue here)
 

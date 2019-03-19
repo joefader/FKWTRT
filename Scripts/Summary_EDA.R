@@ -787,10 +787,10 @@ View(catch_allyears %>%
   count())
   
 View(catch_allyears %>%
-       #filter(MM == 1) %>% 
+       filter(MM == 1) %>% 
        filter(DECLARED_TRIP_TYPE_CODE == 'D') %>%
        group_by(SPECIES_COMMON_NAME) %>%
-       count())
+       count(sort = 'T'))
 
 View(catch_allyears %>%
   filter(MM == 1) %>%
