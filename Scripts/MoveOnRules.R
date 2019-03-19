@@ -51,8 +51,8 @@ moveon_tbl %>%
 ## put file name here
 
 #moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ4_hours240_25_500km_compiled.csv")
-#moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/days10_km500/SQ1_days10_km500_compiled.csv")
-moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ2_hours240_25_500km_compiled.csv")
+moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/MM_any_compiled.csv")
+#moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ2_hours240_25_500km_compiled.csv")
 #moveon_tbl <- read.csv("Data/MoveOnRules/SEFSC_moveon_500k_10d_compiled.csv")
 ## contour of marked probabilities - set for days and km
 moveon_tbl %>%
@@ -94,8 +94,9 @@ moveon_tbl %>%
                        labels = c("0", "50", "100")) +
   # geom_tile(mapping = aes(fill = 
   #         100*(1 - (prob_marked_in/max(moveon_tbl$prob_marked_in))))) +  ### percent reduction from max rate
-  geom_text(mapping = aes(label = 
-          round(100*(1 - (prob_marked_in/max(moveon_tbl$prob_marked_in))), digits =1))) +  ## add value to tiles
+  geom_text(aes(label = 
+          round(100*(1 - (prob_marked_in/max(moveon_tbl$prob_marked_in))), digits=0), 
+          fontface = "bold"), size = 10, show.legend = F) +  ## add value to tiles
   theme(text = element_text(size=18)) +
   #ggtitle("North, Quarter 3 - 12 h x 50 km") +
   ylab("Days since previous set") + xlab("Distance since previous set (km)") +

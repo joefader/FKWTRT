@@ -652,6 +652,7 @@ sets_alldata$BLUEDYE <- as.factor(sets_alldata$BLUEDYE)
 sets_alldata$EDDY_FID <- as.factor(sets_alldata$EDDY_FID)
 sets_alldata$Seamt_ID <- as.factor(sets_alldata$Seamt_ID)
 
+
 # filter sets with more fish caught than hooks set
 # filter sets in eastern hemisphere (except the point right at the line), noticed in GIS one 
 #     set end lon that probably just missed negative, way in west pacific so removed

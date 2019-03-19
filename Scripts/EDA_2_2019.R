@@ -39,6 +39,7 @@ sets_deep_forcorr <- subset(sets_deep_all, select = c(
 ## make a correlation table - only numeric of course
 # note cor uses 'use' to determine what to do with nas
 cortable <- as.data.frame(cor(Filter(is.numeric, sets_deep_forcorr), use = "na.or.complete"))
+write.csv(cortable, "Data/deep_cortable_3-2019.csv")
 
 
 
