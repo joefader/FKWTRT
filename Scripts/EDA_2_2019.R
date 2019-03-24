@@ -41,7 +41,10 @@ sets_deep_forcorr <- subset(sets_deep_all, select = c(
 cortable <- as.data.frame(cor(Filter(is.numeric, sets_deep_forcorr), use = "na.or.complete"))
 write.csv(cortable, "Data/deep_cortable_3-2019.csv")
 
+?cor
 
+cor(sets_deep_forcorr$SOAK, sets_deep_forcorr$NUM_HKS_SET,use = "na.or.complete", method = c("spearman"))
+cor(sets_deep_forcorr$HAUL_BEGIN_LAT, sets_deep_forcorr$HAUL_BEGIN_LON,use = "na.or.complete", method = c("pearson"))
 
 ### testing diff corr plots
 

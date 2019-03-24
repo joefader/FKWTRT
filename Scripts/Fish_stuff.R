@@ -57,7 +57,7 @@ catch_allyears %>% filter(DECLARED_TRIP_TYPE_CODE == 'D') %>%
 
 ## list most caught/depredated species
 View(catch_allyears %>%
-       #filter(MM == 1) %>% 
+       filter(MM == 1) %>% 
        filter(DECLARED_TRIP_TYPE_CODE == 'D') %>%
        group_by(SPECIES_COMMON_NAME) %>%
        count(sort = 'T'))
@@ -134,8 +134,16 @@ sets_deep_fish <- catch_allyears_fish %>%
     MAHI_n_meas = 
       sum(MAHI == 1 & MEAS1_TYPE_CODE == 'FL'),                      ## n of measured BET
     
-    WAHOO_n = sum(WAHOO),
-    BILLFISH_n = sum(BILLFISH),
+    WAHOO_nall = sum(WAHOO[KEPT == 1 | MM == 1]),
+    WAHOO_avgL = 
+      mean(MEAS1[WAHOO == 1 & MEAS1_TYPE_CODE == 'FL']),
+    WAHOO_n_meas = 
+      sum(WAHOO == 1 & MEAS1_TYPE_CODE == 'FL'),
+    BILLFISH_nall = sum(BILLFISH[KEPT == 1 | MM ==1]),
+    BILLFISH_avgL = 
+      mean(MEAS1[BILLFISH == 1 & MEAS1_TYPE_CODE == 'EF']),
+    BILLFISH_n_meas = 
+      sum(BILLFISH == 1 & MEAS1_TYPE_CODE == 'EF'),
     NONTARGET_n = sum(NONTARGET),
     
     CPUE = (FISH/NUM_HKS_SET)*1000,
@@ -143,10 +151,17 @@ sets_deep_fish <- catch_allyears_fish %>%
     ## depredation
     # mammals
     MM_YN = as.factor(ifelse('Marine mammal damage' %in% DAMAGE_CODE_VAL, 1, 0)),
+    MM_any = as.factor(ifelse('Marine mammal damage' %in% DAMAGE_CODE_VAL | 'Whale, False Killer' %in% SPECIES_COMMON_NAME, 1, 0)),
     MM_sum = sum(MM),
-    MM_TUNA = sum(TUNA[MM == 1]),
+    MM_BET = sum(BET[(
+      SPECIES_COMMON_NAME == 'Tuna, Bigeye') & (MM == 1)]),
+    MM_YFT = sum(YFT[(
+      SPECIES_COMMON_NAME == 'Tuna, Yellowfin') & (MM == 1)]),
+    MM_UNID_TUNA = sum(TUNA[(
+      SPECIES_COMMON_NAME == 'Tuna, Unidentified') & (MM == 1)]),
     MM_MAHI = sum(MAHI[MM == 1]),
     MM_BILL = sum(BILLFISH[MM == 1]),
+    MM_WAHOO = sum(WAHOO[MM == 1]),
     DPUE = (MM_sum/NUM_HKS_SET) *1000,
     DP = (MM_sum/KEPT_n),
     
@@ -165,6 +180,9 @@ sets_deep_fish <- catch_allyears_fish %>%
   filter(!is.na(SET_BEGIN_DATETIME),!is.na(SET_END_DATETIME),!is.na(HAUL_BEGIN_DATETIME),!is.na(HAUL_END_DATETIME)) %>%
   filter(!is.na(HAUL_BEGIN_LAT), !is.na(HAUL_BEGIN_LON))
 
+sets_deep_fish[is.na(sets_deep_fish) ] <- NA
+
+
 ## fixing date as in original sets df - filtering function wasn't working with it as above..
 sets_deep_fish <- as.data.frame(sets_deep_fish)
 sets_deep_fish$HAUL_BEGIN_DATE <- as.character(sets_deep_fish$HAUL_BEGIN_DATETIME, tz="")
@@ -172,6 +190,11 @@ sets_deep_fish$HAUL_BEGIN_DATE <- sapply(strsplit(sets_deep_fish$HAUL_BEGIN_DATE
 sets_deep_fish$HAUL_BEGIN_DATE <- as.Date(sets_deep_fish$HAUL_BEGIN_DATE)
 sets_deep_fish$HAUL_BEGIN_DATE <- format(sets_deep_fish$HAUL_BEGIN_DATE, "%m/%d/%Y")
 sets_deep_fish$HAUL_BEGIN_DATE <- as.character.Date(sets_deep_fish$HAUL_BEGIN_DATE)
+
+## time stuff..
+sets_deep_fish$MONTH <- as.numeric(format(sets_deep_fish$SET_BEGIN_DATETIME, "%m"))
+sets_deep_fish$YEAR <- as.numeric(format(sets_deep_fish$SET_BEGIN_DATETIME, "%Y"))
+
 
 #####
 
@@ -190,22 +213,40 @@ nearby_catch <- function(x){
     filter(rdist.earth.vec(coordinates,
                            matrix(c(HAUL_BEGIN_LON, HAUL_BEGIN_LAT), ncol=2),
                            miles = F, R = 6371) <= 100) %>% 
-    summarise(sum(BET_avgL*BET_n_meas, na.rm = T)/sum(BET_n_meas, na.rm = T)) %>% as_vector()
+    #summarise(sum(BET_avgL*BET_n_meas, na.rm = T)/sum(BET_n_meas, na.rm = T)) %>% as_vector()
     #summarise(sum(BET_n_meas, na.rm=T)) %>% as_vector()
     #summarise(sum(YFT_avgL*YFT_n_meas, na.rm = T)/sum(YFT_n_meas, na.rm = T)) %>% as_vector()
     #summarise(sum(YFT_n_meas, na.rm=T)) %>% as_vector()
     #summarise(sum(MAHI_avgL*MAHI_n_meas, na.rm = T)/sum(MAHI_n_meas, na.rm = T)) %>% as_vector()
     #summarise(sum(MAHI_n_meas, na.rm=T)) %>% as_vector()
+    summarise(n()) %>% as_vector()
 }
 
 #(sum(BET_avgL*BET_n_meas)/sum(BET_n_meas))
 ### assign value for each row to corresponding row in df
 sets_deep_fish[, "BET_avgL_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
 sets_deep_fish[, "BET_n_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
+sets_deep_fish[, "YFT_avgL_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
+sets_deep_fish[, "YFT_n_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
+sets_deep_fish[, "MAHI_avgL_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
+sets_deep_fish[, "MAHI_n_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
+sets_deep_fish[, "num_vessels_1d_100k"] <- apply(sets_deep_fish, 1, nearby_catch)
+
 sets_deep_fish[, "BET_avgL_3d_200k"] <- apply(sets_deep_fish, 1, nearby_catch)
 sets_deep_fish[, "BET_n_3d_200k"] <- apply(sets_deep_fish, 1, nearby_catch)
 
 ?apply
+
+
+## making a backup copy of 'filtered' stuff in case 
+## need to make changes to original fish/sets df -- must join back to main df
+sets_deep_fish_filterhold <- sets_deep_fish %>% 
+  select(c("TRIP_ID", "VESSEL_ID", "SET_NUM", "BET_avgL_1d_100k":"num_vessels_1d_100k"))
+
+sets_deep_fish <- left_join(sets_deep_fish, sets_deep_fish_filterhold2, by=c("TRIP_ID", "VESSEL_ID", "SET_NUM"))
+
+sets_deep_fish[is.na(sets_deep_fish) ] <- NA
+
 
 ## diff in BET size
 sets_deep_fish %>% 
@@ -214,19 +255,46 @@ sets_deep_fish %>%
   geom_freqpoly(binwidth = 10 )
 
 
+## estimating biomass lost
+## 
+# BET LWR = 2.77562E-05*BET_avgL_1d_100k^2.93652
+# YFT LWR = 3.16534E-05*YFT_n_1d_100k^2.88938
+# WAHOO LWR = 1.4157E-07*FL^3.3034
+# MAHI LWR = 1.0693E-05*MAHI_avgL_1d_100k^2.9337         ## female LWR
+# MAHI LWR = 8.0856E-06*MAHI_avgL_1d_100k^3.0157         ## male LWR - males bigger, not pooled in Ushiyama, could find sex ratio but for now just using fems to be conservative 
+
+## if no fish nearby (filter estimates NA), subsituting avg for species across all sets
+
 sets_deep_fish %>% 
+  #group_by(YEAR) %>% 
   summarise(
-    
+    sum(BET_avgL*BET_n_meas, na.rm = T)/sum(BET_n_meas, na.rm = T),
+    sum(YFT_avgL*YFT_n_meas, na.rm = T)/sum(YFT_n_meas, na.rm = T),
+    sum(MAHI_avgL*MAHI_n_meas, na.rm = T)/sum(MAHI_n_meas, na.rm = T)
   )
 
+## replace Nas from filtered stuff with averages
+sets_deep_fish <- sets_deep_fish %>% 
+  replace_na(list(
+    BET_avgL_1d_100k = 112.4046, 
+    YFT_avgL_1d_100k = 108.9714,
+    MAHI_avgL_1d_100k = 85.89522))
 
 
-
-
-
-
-
-
+sets_deep_fish %>% 
+  group_by(YEAR) %>% 
+  summarise(
+    BET = sum((2.77562E-05*BET_avgL_1d_100k^2.93652)*MM_BET, na.rm=T)*5 / 1000,
+    YFT = sum((3.16534E-05*YFT_avgL_1d_100k^2.88938)*MM_YFT, na.rm=T)*5 / 1000,
+    UNID_TUNA = sum(
+      ((YFT_n_1d_100k / (BET_n_1d_100k + YFT_n_1d_100k)) * MM_UNID_TUNA *
+         (3.16534E-05*YFT_n_1d_100k^2.88938)) + 
+      ((BET_n_1d_100k / (BET_n_1d_100k + YFT_n_1d_100k)) * MM_UNID_TUNA *
+         (2.77562E-05*BET_avgL_1d_100k^2.93652)), na.rm = T)*5/1000,
+    MM_TUNA_KG = sum(BET + YFT + UNID_TUNA),
+    MAHI = sum((1.0693E-05*MAHI_avgL_1d_100k^2.9337)*MM_MAHI, na.rm=T)*5 / 1000,
+    tots = sum(BET + YFT + UNID_TUNA + MAHI)
+    )
 
 
 

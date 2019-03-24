@@ -356,6 +356,22 @@ ggplot(data = sets_deep_all, mapping = aes(x = MM_YN, y = SOAK)) +
 ggplot(sets_deep_all, aes(x=SOAK)) +
   geom_histogram(binwidth = 20)
 
+
+sets_deep_all <- sets_deep_all %>% 
+  mutate(Q = ifelse(MONTH == 1 | MONTH == 2 | MONTH == 3, 1,
+                           ifelse(MONTH == 4 | MONTH == 5 | MONTH == 6, 2,
+                                  ifelse(MONTH == 7 | MONTH == 8 | MONTH == 9, 3,
+                                         ifelse(MONTH == 10 | MONTH == 11 | MONTH == 12, 4, 0
+                                  )))))
+
+sets_deep_all %>% 
+  group_by(Q) %>% 
+  summarize(
+    tots = n(),
+    mm = sum(as.numeric(as.character(MM_any))),
+    mm/tots
+  )
+
 #############################################################################
 ### gear stuff
 #############################################################################
@@ -726,7 +742,7 @@ sets_deep_all %>%
 
 ## MM damage for FKW hooked
 sets_deep_all %>%
-  filter(FKW == 1 & MM_YN == 1) %>%
+  filter(FKW == 1) %>%
   ggplot(aes(x= MM_sum)) + geom_bar() + ylab("Count") + theme_classic() +
   theme(text = element_text(size=18)) +
   ylab("Number of Sets") + xlab("MM damaged fish") +
@@ -776,6 +792,18 @@ sets_deep_all %>%
 sets_deep_all %>%
   filter(FKW == 1 & MM_YN == 1) %>%
   ggplot(aes(x= CPUE_FLT)) + geom_histogram() + ylab("Count") + theme_classic() +xlab("MM damaged fish")
+
+
+## cpue of boats nearby is significant in GAM, but isn't evident with overall density of cpue 
+## and depred y vs n. Number of boats doesnt seem to matter in either. Same with FKW
+sets_deep_all %>%
+  #filter(MM_any == 1) %>% 
+  #ggplot(aes(x= cpue_avg_3d_100k, y = ..density.., colour = MM_YN)) + geom_freqpoly(bins=10) +
+  ggplot(aes(x= num_vessels_3d_100k, y = ..density.., colour = MM_YN)) + geom_freqpoly(bins=10) +
+  theme_classic() + ylab("Density") + xlab(" x - value ") +
+  scale_x_continuous(breaks=seq(0,120,20),limits=c(0,120)) + labs(color="Y/N") +
+  scale_color_manual(labels = c("No", "Yes"), values = c("#56B4E9", "#E69F00"))
+
 
 
 
