@@ -51,27 +51,37 @@ moveon_tbl %>%
 ## put file name here
 
 #moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ4_hours240_25_500km_compiled.csv")
-moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/MM_any_compiled.csv")
 #moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/hours240_25_500km/NQ2_hours240_25_500km_compiled.csv")
 #moveon_tbl <- read.csv("Data/MoveOnRules/SEFSC_moveon_500k_10d_compiled.csv")
 ## contour of marked probabilities - set for days and km
-moveon_tbl %>%
+
+## file names
+moveon_tbl <- read.csv("Data/MoveOnRules/MoveOnCompiled/Centroid_95perchull/NQ4_12-240h_25-500k.csv")
+
+
+## if need to downsample...
+NQ4 <- moveon_tbl %>% 
+  filter(days %in% seq(24, 240, 24)) %>%
+  filter(distance %in% seq(50, 500, 50))
+    #days == 24 | days == 48 | days == 72 | days == 96 | days == 120 | days == 24 | 144)
+
+NQ4 %>%
   #filter(days <= 120 & distance <= 250) %>% 
-  ggplot(mapping = aes(x = distance, y = days)) + theme_classic() +
+  ggplot(mapping = aes(x = distance, y = days/24)) + theme_classic() +
   geom_contour(aes(z = prob_marked_in*100, colour = ..level..), binwidth= 1) +
   geom_contour(aes(z = prob_marked_in*100), binwidth= 5, color = "red") +
   geom_text_contour(aes(z = prob_marked_in*100), stroke = 0.3, 
                     binwidth= 5, color = "red", rotate = T, size = 6) +
   theme(text = element_text(size=18)) +
-  ggtitle("North, Quarter 1 - 12 h x 50 km") +
-  ylab("Hours since previous set") + xlab("Distance since previous set (km)") +
-  # scale_x_continuous(breaks=seq(0,500,50),limits=c(25,500)) +
-  # scale_y_continuous(breaks=seq(0,240,24),limits=c(0,240)) +
+  #ggtitle("North, Quarter 1 - 12 h x 50 km") +
+  ylab("\nDays since previous set") + xlab("\nDistance since previous set (km)") +
+  scale_x_continuous(breaks=seq(0,500,50),limits=c(50,500)) +
+  scale_y_continuous(breaks=seq(0,10,1),limits=c(1,10)) +
   # scale_y_continuous(breaks=seq(0,10,1),limits=c(0,10)) +
-  scale_x_continuous(breaks=seq(0,250,50),limits=c(25,250)) +
-  scale_y_continuous(breaks=seq(0,120,24),limits=c(0,120)) +
+  # scale_x_continuous(breaks=seq(0,250,50),limits=c(25,250)) +
+  # scale_y_continuous(breaks=seq(0,120,24),limits=c(0,120)) +
   scale_color_continuous(name = "Prob. rpt. depr.") +
-  theme(legend.justification=c(1, 0), legend.position=c(1, .75))
+  theme(legend.justification=c(1, 0), legend.position=c(1, .7))
   #geom_text_contour(aes(z = prob_marked_in), stroke = 0.2, check_overlap=T, rotate = T)
   #geom_label_contour(aes(z = prob_marked_in))
 direct.label(g, method="bottom.pieces")
