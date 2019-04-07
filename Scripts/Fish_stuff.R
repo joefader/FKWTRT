@@ -3,6 +3,7 @@ library(tidyverse)
 library(lubridate)
 library(feather)
 library(fields)
+library(reshape2)
 
 ## depredation patterns around FKW bycatch
 
@@ -251,8 +252,10 @@ sets_deep_fish[is.na(sets_deep_fish) ] <- NA
 ## diff in BET size
 sets_deep_fish %>% 
   filter(DECLARED_TRIP =='D') %>%  
-  ggplot(aes(x = BET_avgL_1d_100k, y = ..density.., colour = MM_YN)) +
-  geom_freqpoly(binwidth = 10 )
+  #ggplot(aes(x = BET_avgL_1d_100k, y = ..density.., colour = MM_YN)) +
+  ggplot(aes(x = BET_avgL_1d_100k)) +
+  geom_histogram()
+#  geom_freqpoly(binwidth = 10 )
 
 
 ## estimating biomass lost
@@ -296,5 +299,93 @@ sets_deep_fish %>%
     tots = sum(BET + YFT + UNID_TUNA + MAHI)
     )
 
+
+
+
+
+#####
+
+# auction data
+
+#####
+
+
+POP_2017 <- read_csv("Data/POP_auction/POP_2017.csv")
+
+POP_2017_csv <- POP_2017 %>%
+  group_by(day) %>%
+  summarise(field=paste(field, collapse='|'))
+
+POP_2017_csv$all <- paste(POP_2017_csv$day, "|", POP_2017_csv$field)
+POP_2017_csv <- POP_2017_csv %>% select(all)
+write.table(POP_2017_csv, "Data/POP_auction/POP_2017_tidy.csv", quote = F, sep = "|")
+max(count.fields("Data/POP_auction/POP_2017_tidy.csv", sep = '|'))
+POP_2017_full <- read.table("Data/POP_auction/POP_2017_tidy.csv", fill = T, header = F, sep = "|", 
+                            col.names = c("ID", "day", 
+                            "row1", "type1a", "count1a", "weight1a", "price1a", "type1b", "count1b", "weight1b", "price1b",
+                            "row2", "type2a", "count2a", "weight2a", "price2a", "type2b", "count2b", "weight2b", "price2b",
+                            "row3", "type3a", "count3a", "weight3a", "price3a", "type3b", "count3b", "weight3b", "price3b",
+                            "row4", "type4a", "count4a", "weight4a", "price4a", "type4b", "count4b", "weight4b", "price4b",
+                            "row5", "type5a", "count5a", "weight5a", "price5a", "type5b", "count5b", "weight5b", "price5b",
+                            "row6", "type6a", "count6a", "weight6a", "price6a", "type6b", "count6b", "weight6b", "price6b",
+                            "row7", "type7a", "count7a", "weight7a", "price7a", "type7b", "count7b", "weight7b", "price7b",
+                            "row8", "type8a", "count8a", "weight8a", "price8a", "type8b", "count8b", "weight8b", "price8b",
+                            "row9", "type9a", "count9a", "weight9a", "price9a", "type9b", "count9b", "weight9b", "price9b",
+                            "row10", "type10a", "count10a", "weight10a", "price10a", "type10b", "count10b", "weight10b", "price10b"), 
+                            
+                            colClasses = c(rep("character", 92)))
+
+POP_2017_full <- POP_2017_full[-1,-1]
+
+cols <- c("day", "row", "type", "count", "weight", "price")
+POP_2017_1a <- POP_2017_full[,1:6] %>% setNames(.,cols)
+POP_2017_1b <- POP_2017_full[,c(1:2,7:10)] %>% setNames(.,cols)
+POP_2017_2a <- POP_2017_full[,c(1:2,11:14)] %>% setNames(.,cols)
+POP_2017_2b <- POP_2017_full[,c(1:2,15:18)] %>% setNames(.,cols)
+POP_2017_3a <- POP_2017_full[,c(1:2,19:22)] %>% setNames(.,cols)
+POP_2017_3b <- POP_2017_full[,c(1:2,23:26)] %>% setNames(.,cols)
+POP_2017_4a <- POP_2017_full[,c(1:2,27:30)] %>% setNames(.,cols)
+POP_2017_4b <- POP_2017_full[,c(1:2,31:34)] %>% setNames(.,cols)
+POP_2017_5a <- POP_2017_full[,c(1:2,35:38)] %>% setNames(.,cols)
+POP_2017_5b <- POP_2017_full[,c(1:2,39:42)] %>% setNames(.,cols)
+
+POP_2017_tidy <- rbind(POP_2017_1a, POP_2017_1b)
+
+melt(POP_2017_tidy, 
+     id.vars = c("day", "row1", "type1a", "type1b"),
+     measure.vars = patterns("^count", "^weight", "^price"), 
+     value.name = c("count", "weight", "price"))
+
+melt(POP_2017_tidy, id.vars = c("day", "row1", "type1a", "type1b"),
+     measure.vars = c("count1a", "weight1a", "price1a", "count1b", "weight1b", "price1b"))
+                      #"count2a", "weight2a", "price2a", "count2b", "weight2b", "price2b"))
+
+
+POP_2017_tidy %>% 
+  gather(type1a, type1b, type2a, type2b, key = "type", value = "type")
+?melt
+
+### stuff that didnt work
+'''
+POP_2017 %>%
+  group_by(day) %>% 
+  spread(key = day, value = field)
+
+reshape(POP_2010,
+        idvar = "day",
+        timevar = "field",
+        direction = "wide")
+melt(POP_2010, id.vars = c("day"))
+
+
+POP_2010_tidy[1,]
+
+aggregate(POP_2010["field"], POP_2010["day"], paste, collapse=",")
+?aggregate
+?read_csv
+library(data.table)
+POP_2010[ , .(field = paste(field, collapse=",")), by = day]
+
+'''
 
 
