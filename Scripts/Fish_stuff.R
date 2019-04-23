@@ -59,15 +59,17 @@ catch_allyears %>% filter(DECLARED_TRIP_TYPE_CODE == 'D') %>%
 ## list most caught/depredated species
 View(catch_allyears %>%
        filter(MM == 1) %>% 
+       filter(YEAR >= 2004) %>% 
        filter(DECLARED_TRIP_TYPE_CODE == 'D') %>%
        group_by(SPECIES_COMMON_NAME) %>%
-       count(sort = 'T'))
+       count(sort = 'T')) 
+
 
 ## summaries of size..
 View(catch_allyears_fish %>%
   filter(DECLARED_TRIP_TYPE_CODE == "D") %>% 
   filter(MEAS1_TYPE_CODE == "FL" | MEAS1_TYPE_CODE == "EF") %>% 
-  filter(KEPT == 1, TYPE == "FISH") %>% 
+  #filter(KEPT == 1, TYPE == "FISH") %>% 
   group_by(SPECIES_COMMON_NAME, MEAS1_TYPE_CODE) %>% 
   summarise(
     n(),
@@ -257,7 +259,7 @@ sets_deep_fish %>%
   geom_histogram()
 #  geom_freqpoly(binwidth = 10 )
 
-
+2.77562E-05*(114^2.93652)*5000*5/1000/14*2204*5
 ## estimating biomass lost
 ## 
 # BET LWR = 2.77562E-05*BET_avgL_1d_100k^2.93652
@@ -267,7 +269,7 @@ sets_deep_fish %>%
 # MAHI LWR = 8.0856E-06*MAHI_avgL_1d_100k^3.0157         ## male LWR - males bigger, not pooled in Ushiyama, could find sex ratio but for now just using fems to be conservative 
 
 ## if no fish nearby (filter estimates NA), subsituting avg for species across all sets
-
+## doing by set, if use catch data frame gives same answer within a thousandth..
 sets_deep_fish %>% 
   #group_by(YEAR) %>% 
   summarise(
@@ -283,8 +285,9 @@ sets_deep_fish <- sets_deep_fish %>%
     YFT_avgL_1d_100k = 108.9714,
     MAHI_avgL_1d_100k = 85.89522))
 
-
-sets_deep_fish %>% 
+## add up depredated catch by month and year
+vessel_by_mo <- sets_deep_fish %>% 
+  filter(YEAR >= 2004) %>% 
   group_by(YEAR) %>% 
   summarise(
     BET = sum((2.77562E-05*BET_avgL_1d_100k^2.93652)*MM_BET, na.rm=T)*5 / 1000,
@@ -293,34 +296,51 @@ sets_deep_fish %>%
       ((YFT_n_1d_100k / (BET_n_1d_100k + YFT_n_1d_100k)) * MM_UNID_TUNA *
          (3.16534E-05*YFT_n_1d_100k^2.88938)) + 
       ((BET_n_1d_100k / (BET_n_1d_100k + YFT_n_1d_100k)) * MM_UNID_TUNA *
-         (2.77562E-05*BET_avgL_1d_100k^2.93652)), na.rm = T)*5/1000,
-    MM_TUNA_KG = sum(BET + YFT + UNID_TUNA),
+         (2.77562E-05*BET_avgL_1d_100k^2.93652)), na.rm = T)*5 / 1000,
+    MM_TUNA_MT = sum(BET + YFT + UNID_TUNA),
     MAHI = sum((1.0693E-05*MAHI_avgL_1d_100k^2.9337)*MM_MAHI, na.rm=T)*5 / 1000,
-    tots = sum(BET + YFT + UNID_TUNA + MAHI)
-    )
+    tots = sum(BET + YFT + UNID_TUNA + MAHI) 
+    ) %>%
+  summarise(
+    mean(MM_TUNA_MT),
+    sd(MM_TUNA_MT),
+    min(MM_TUNA_MT),
+    max(MM_TUNA_MT)
+  )
+  
 
 
-
-
-
-#####
-
+#########################
 # auction data
-
 #####
 
+## data acquired from POP website scrubbed using Parse Hub. 2012-2018 seem clean and straightforward,
+## 2011 and earlier have duplicate days and other inconsistencies that dont always make sense. Could 
+## delete duplicates or otherwise clean, but for now considering 2012 and later only
 
+
+POP_2012 <- read_csv("Data/POP_auction/POP_2012.csv")
+POP_2013 <- read_csv("Data/POP_auction/POP_2013.csv")
+POP_2014 <- read_csv("Data/POP_auction/POP_2014.csv")
+POP_2015 <- read_csv("Data/POP_auction/POP_2015.csv")
+POP_2016 <- read_csv("Data/POP_auction/POP_2016.csv")
 POP_2017 <- read_csv("Data/POP_auction/POP_2017.csv")
+POP_2018 <- read_csv("Data/POP_auction/POP_2018.csv")
 
-POP_2017_csv <- POP_2017 %>%
+POP_all <- rbind(POP_2012, POP_2013, POP_2014, POP_2015, POP_2016, POP_2017, POP_2018)
+
+## collects each day on single line, separated by | bc commas in dataset already
+POP_all_csv <- POP_all %>%
   group_by(day) %>%
   summarise(field=paste(field, collapse='|'))
 
-POP_2017_csv$all <- paste(POP_2017_csv$day, "|", POP_2017_csv$field)
-POP_2017_csv <- POP_2017_csv %>% select(all)
-write.table(POP_2017_csv, "Data/POP_auction/POP_2017_tidy.csv", quote = F, sep = "|")
-max(count.fields("Data/POP_auction/POP_2017_tidy.csv", sep = '|'))
-POP_2017_full <- read.table("Data/POP_auction/POP_2017_tidy.csv", fill = T, header = F, sep = "|", 
+POP_all_csv$all <- paste(POP_all_csv$day, "|", POP_all_csv$field)    # add delim bt day and others
+POP_all_csv <- POP_all_csv %>% select(all)                            # get rid of extra cols
+write.table(POP_all_csv, 
+          "Data/POP_auction/POP_all_full.csv", quote = F, sep = "|")   # write csv, get rid of quotes
+max(count.fields("Data/POP_auction/POP_all_full.csv", sep = '|'))      # max number of cols in df
+POP_all_full <- read.table("Data/POP_auction/POP_all_full.csv",       # fill allows empty cols
+                            fill = T, header = F, sep = "|", 
                             col.names = c("ID", "day", 
                             "row1", "type1a", "count1a", "weight1a", "price1a", "type1b", "count1b", "weight1b", "price1b",
                             "row2", "type2a", "count2a", "weight2a", "price2a", "type2b", "count2b", "weight2b", "price2b",
@@ -331,61 +351,147 @@ POP_2017_full <- read.table("Data/POP_auction/POP_2017_tidy.csv", fill = T, head
                             "row7", "type7a", "count7a", "weight7a", "price7a", "type7b", "count7b", "weight7b", "price7b",
                             "row8", "type8a", "count8a", "weight8a", "price8a", "type8b", "count8b", "weight8b", "price8b",
                             "row9", "type9a", "count9a", "weight9a", "price9a", "type9b", "count9b", "weight9b", "price9b",
-                            "row10", "type10a", "count10a", "weight10a", "price10a", "type10b", "count10b", "weight10b", "price10b"), 
+                            "row10", "type10a", "count10a", "weight10a", "price10a", "type10b", "count10b", "weight10b", "price10b",
+                            "row11", "type11a", "count11a", "weight11a", "price11a", "type11b", "count11b", "weight11b", "price11b",
+                            "row12", "type12a", "count12a", "weight12a", "price12a", "type12b", "count12b", "weight12b", "price12b"), 
                             
-                            colClasses = c(rep("character", 92)))
+                            colClasses = c(rep("character", 110)))
 
-POP_2017_full <- POP_2017_full[-1,-1]
+POP_all_full <- POP_all_full[-1,-1]         # drop useless 1st row and col
 
-cols <- c("day", "row", "type", "count", "weight", "price")
-POP_2017_1a <- POP_2017_full[,1:6] %>% setNames(.,cols)
-POP_2017_1b <- POP_2017_full[,c(1:2,7:10)] %>% setNames(.,cols)
-POP_2017_2a <- POP_2017_full[,c(1:2,11:14)] %>% setNames(.,cols)
-POP_2017_2b <- POP_2017_full[,c(1:2,15:18)] %>% setNames(.,cols)
-POP_2017_3a <- POP_2017_full[,c(1:2,19:22)] %>% setNames(.,cols)
-POP_2017_3b <- POP_2017_full[,c(1:2,23:26)] %>% setNames(.,cols)
-POP_2017_4a <- POP_2017_full[,c(1:2,27:30)] %>% setNames(.,cols)
-POP_2017_4b <- POP_2017_full[,c(1:2,31:34)] %>% setNames(.,cols)
-POP_2017_5a <- POP_2017_full[,c(1:2,35:38)] %>% setNames(.,cols)
-POP_2017_5b <- POP_2017_full[,c(1:2,39:42)] %>% setNames(.,cols)
+#View(POP_all_full[,c(1,90:109)])           # viewing extra cols, only one day with 12 rows but looks fine
+#################
+#########################
+## found a few more errors/duplicates
+#########################
+# Mar 22, 2012 - extra misc rows, deleted the 6th row
+# May 04, 2012 - two tunas in first row, spread out with misc/zeros
+# may 8, 2012 - two exact days, deleted one in 2012 csv
+# jun 7, 2012 - 3 rows 1st, 5 rows 2nd, changed to 8 total rows
+# Jul 18, 2012 - duplicate misc row - deleted
+# Aug 31, 2012 - two pages of 3 rows, changed 2nd to 4, 5, 6
+# Oct 21, 2012 - row 4 just tuna, throws off data frame - added misc for row 4 but put zeros
 
-POP_2017_tidy <- rbind(POP_2017_1a, POP_2017_1b)
+# Jan 15, 2013 - row 1 w 2 misc, labeled one as row 2
+# Jan 17, 2013 - 2 row 2 misc but none in row 3, moved 1 to row 3
+# Jan 18, 2013 - misassigned row for row 1, moved misc up from 2 to 1
+# Jan 21, 2013 - 4 rows of tuna then jumps to 6th for misc, just lumped misc with 4th tuna
+# Apr 25, 2013 - rows 6 and 7 only misc, deleting
+# Jun 07, 2013 - duplicate days, deleted one
+# Jul 11, 2013 - extra misc row, deleted
+# Jul 29, 2013 - misc row 6 instead of 4, changed
+# Oct 23, 2013 - 2 tuna in first row, combine with avgs
 
-melt(POP_2017_tidy, 
-     id.vars = c("day", "row1", "type1a", "type1b"),
-     measure.vars = patterns("^count", "^weight", "^price"), 
-     value.name = c("count", "weight", "price"))
+# oct 12, 2015 - different, 5 rows first day 4 rows 2nd, changed 2nd day rows to 6-9
+################
+## converting to tidy format
+################
 
-melt(POP_2017_tidy, id.vars = c("day", "row1", "type1a", "type1b"),
-     measure.vars = c("count1a", "weight1a", "price1a", "count1b", "weight1b", "price1b"))
-                      #"count2a", "weight2a", "price2a", "count2b", "weight2b", "price2b"))
+# converting to tidy format now..
+cols <- c("day", "row", "type", "count", "weight", "price")       # col names for tidy dataset
+POP_all_1a <- POP_all_full[,1:6] %>% setNames(.,cols)             # 
+POP_all_1b <- POP_all_full[,c(1:2, 7:10)] %>% setNames(.,cols)
+
+POP_all_2a <- POP_all_full[,c(1, 11:15)] %>% setNames(.,cols)
+POP_all_2b <- POP_all_full[,c(1, c(11,16:19))] %>% setNames(.,cols)
+
+POP_all_3a <- POP_all_full[,c(1, 20:24)] %>% setNames(.,cols)
+POP_all_3b <- POP_all_full[,c(1, c(20, 25:28))] %>% setNames(.,cols)
+
+POP_all_4a <- POP_all_full[,c(1, 29:33)] %>% setNames(.,cols)
+POP_all_4b <- POP_all_full[,c(1, c(29, 34:37))] %>% setNames(.,cols)
+
+POP_all_5a <- POP_all_full[,c(1, 38:42)] %>% setNames(.,cols)
+POP_all_5b <- POP_all_full[,c(1, c(38, 43:46))] %>% setNames(.,cols)
+
+POP_all_6a <- POP_all_full[,c(1, 47:51)] %>% setNames(.,cols)
+POP_all_6b <- POP_all_full[,c(1, c(47, 52:55))] %>% setNames(.,cols)
+
+POP_all_7a <- POP_all_full[,c(1, 56:60)] %>% setNames(.,cols)
+POP_all_7b <- POP_all_full[,c(1, c(56, 61:64))] %>% setNames(.,cols)
+
+POP_all_8a <- POP_all_full[,c(1, 65:69)] %>% setNames(.,cols)
+POP_all_8b <- POP_all_full[,c(1, c(65, 70:73))] %>% setNames(.,cols)
+
+POP_all_9a <- POP_all_full[,c(1, 74:78)] %>% setNames(.,cols)
+POP_all_9b <- POP_all_full[,c(1, c(74, 79:82))] %>% setNames(.,cols)
+
+POP_all_10a <- POP_all_full[,c(1, 83:87)] %>% setNames(.,cols)
+POP_all_10b <- POP_all_full[,c(1, c(83, 88:91))] %>% setNames(.,cols)
+
+POP_all_11a <- POP_all_full[,c(1, 92:96)] %>% setNames(.,cols)
+POP_all_11b <- POP_all_full[,c(1, c(92, 97:100))] %>% setNames(.,cols)
+
+POP_all_12a <- POP_all_full[,c(1, 101:105)] %>% setNames(.,cols)
+POP_all_12b <- POP_all_full[,c(1, c(101, 106:109))] %>% setNames(.,cols)
+
+POP_all_tidy <- rbind(POP_all_1a, POP_all_1b, POP_all_2a, POP_all_2b, POP_all_3a, POP_all_3b,
+                      POP_all_4a, POP_all_4b, POP_all_5a, POP_all_5b, POP_all_6a, POP_all_6b,
+                      POP_all_7a, POP_all_7b, POP_all_8a, POP_all_8b, POP_all_9a, POP_all_9b,
+                      POP_all_10a, POP_all_10b, POP_all_11a, POP_all_11b, POP_all_12a, POP_all_12b) %>% 
+                na_if(., "") %>% 
+                drop_na()
+
+summary(POP_all_tidy)
+
+# fixin up the vars
+POP_all_tidy$day <- dmy(POP_all_tidy$day)
+POP_all_tidy$MONTH <- as.numeric(format(POP_all_tidy$day, "%m"))
+POP_all_tidy$YEAR <- as.numeric(format(POP_all_tidy$day, "%Y"))
+
+POP_all_tidy$row <- as.integer(POP_all_tidy$row)
+POP_all_tidy$count <- as.integer(gsub("," ,"", POP_all_tidy$count))
+
+POP_all_tidy$weight <- as.numeric(gsub(",", "", POP_all_tidy$weight))
+POP_all_tidy$price <- as.numeric(gsub("\\$", "", POP_all_tidy$price))
+
+####################
+##add it up
+####################
+
+write_feather(POP_all_tidy, "Data/POP_auction/POP_all_tidy.feather")
+POP_all_tidy <- read_feather("Data/POP_auction/POP_all_tidy.feather")
 
 
-POP_2017_tidy %>% 
-  gather(type1a, type1b, type2a, type2b, key = "type", value = "type")
-?melt
-
-### stuff that didnt work
-'''
-POP_2017 %>%
-  group_by(day) %>% 
-  spread(key = day, value = field)
-
-reshape(POP_2010,
-        idvar = "day",
-        timevar = "field",
-        direction = "wide")
-melt(POP_2010, id.vars = c("day"))
+sales_by_mo <- POP_all_tidy %>% 
+  filter(type == 'Tuna', YEAR < 2018) %>% 
+  group_by(YEAR, MONTH) %>% 
+  summarise(
+    pounds_auction = sum(weight),       # metric tons by month
+    dollars_auction = sum(weight * price),
+    avg_perlb = dollars_auction / pounds_auction
+  )
 
 
-POP_2010_tidy[1,]
+depred_costs <- left_join(sales_by_mo, vessel_by_mo, by = c("YEAR", "MONTH"))
 
-aggregate(POP_2010["field"], POP_2010["day"], paste, collapse=",")
-?aggregate
-?read_csv
-library(data.table)
-POP_2010[ , .(field = paste(field, collapse=",")), by = day]
+depred_costs <- depred_costs %>% 
+  mutate(MM_TUNA_LBS = MM_TUNA_MT * 2204.62)  %>%    # convert to lbs
+  mutate(MM_TUNA_cost = MM_TUNA_LBS * avg_perlb) 
 
-'''
+depred_costs %>% 
+  group_by(YEAR) %>% 
+  summarise(
+    cost_fleet = sum(MM_TUNA_cost),
+    cost_per_boat = cost_fleet / 153
+) %>% 
+  summarise(
+    fleet_mean = mean(cost_fleet), 
+    sd = sd(cost_fleet),
+    boat_mean = fleet_mean / 153
+  )
+
+
+vessel_by_mo %>% 
+  filter(YEAR >= 2012) %>% 
+  summarize(
+    
+  )
+  
+
+
+
+
+
 
 
